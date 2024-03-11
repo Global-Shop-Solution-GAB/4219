@@ -1,0 +1,366 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("Gasser Bedding Tag Program")
+Gui.Form..Size(4500,3285)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.lbl1.Create(Label,"Choose Job and Suffix",True,1935,255,0,1005,150,True,0,"Arial",8,-986896,0)
+Gui.Form.txtjob.Create(TextBox,"",True,1215,300,0,495,435,False,0,"Arial",8,-2147483643,1)
+Gui.Form.lbl2.Create(Label,"Job:",True,450,255,0,45,495,True,0,"Arial",8,-986896,0)
+Gui.Form.txtSuffix.Create(TextBox,"",True,1080,300,0,2370,420,False,0,"Arial",8,-2147483643,1)
+Gui.Form.lbl3.Create(Label,"Suffix:",True,540,255,0,1785,480,True,0,"Arial",8,-986896,0)
+Gui.Form.cmdBrwser.Create(Button)
+Gui.Form.cmdBrwser.Size(540,375)
+Gui.Form.cmdBrwser.Position(3570,390)
+Gui.Form.cmdBrwser.Caption("^")
+Gui.Form.cmdBrwser.Event(Click,cmdBrwser_Click)
+Gui.Form.lbl4.Create(Label,"First Tag Number",True,1410,255,0,30,1155,True,0,"Arial",8,-986896,0)
+Gui.Form.txtFirst.Create(TextBox,"",True,1215,300,0,1605,1065,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtLast.Create(TextBox,"",True,1215,300,0,1590,1605,False,0,"Arial",8,-2147483643,1)
+Gui.Form.lbl5.Create(Label,"Last Tag Number",True,1395,255,0,45,1695,True,0,"Arial",8,-986896,0)
+Gui.Form.ddlPrinter.Create(DropDownList)
+Gui.Form.ddlPrinter.Size(1800,330)
+Gui.Form.ddlPrinter.Position(705,2190)
+Gui.Form.ddlPrinter.Event(Click,ddlPrinter_Click)
+Gui.Form.ddlPrinter.AddItem("")
+Gui.Form.ddlPrinter.AddItem("PD1 Assembly")
+Gui.Form.ddlPrinter.AddItem("PD1 Office")
+Gui.Form.ddlPrinter.AddItem("MCI")
+Gui.Form.ddlPrinter.Enabled(True)
+Gui.Form.lbl6.Create(Label,"Printer",True,630,255,0,45,2265,True,0,"Arial",8,-986896,0)
+Gui.Form.cmdCreate.Create(Button)
+Gui.Form.cmdCreate.Size(960,375)
+Gui.Form.cmdCreate.Position(3015,2145)
+Gui.Form.cmdCreate.Caption("Create")
+Gui.Form.cmdCreate.Event(Click,cmdCreate_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'open connection
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass,1800)
+'populate ddl
+'Lock Form until job/suffix choosen
+
+GUI.Form..Show
+
+Program.Sub.Main.End
+
+Program.Sub.ddlPrinter_Change.Start
+Program.Sub.ddlPrinter_Change.End
+
+Program.Sub.ddlPrinter_Click.Start
+Program.Sub.ddlPrinter_Click.End
+
+Program.Sub.cmdCreate_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdCreate_Click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Check all fields have entries
+
+Function.Intrinsic.Control.If(V.Screen.Form!txtLast.Text, = , "")
+	F.Intrinsic.UI.Msgbox("Enter Last Tag Number")
+	F.Intrinsic.Control.ExitSub
+Function.Intrinsic.Control.ElseIf(V.Screen.Form!ddlPrinter.Text, = , "")
+	F.Intrinsic.UI.Msgbox("Select Ptrinter")
+	F.Intrinsic.Control.ExitSub
+Function.Intrinsic.Control.ElseIf(V.Screen.Form!txtLast.Text, <, V.Screen.Form!txtFirst.Text)
+	Gui.Form.txtLast.Text("")
+	F.Intrinsic.UI.Msgbox("Last Tag Number Must Be Greater Than OR Equal To First Tag Number")
+	F.Intrinsic.Control.ExitSub
+Function.Intrinsic.Control.EndIf
+'lock screen
+GUI.Form..Enabled(False)
+'call sub to save to database
+F.Intrinsic.Control.CallSub(createfiles)
+'clear screen for next entry
+Gui.Form.txtjob.Text("")
+Gui.Form.txtSuffix.Text("")
+Gui.Form.txtFirst.Text("")
+Gui.Form.txtLast.Text("")
+Gui.Form.ddlPrinter.Text("")
+'unlock screen
+GUI.Form..Enabled(True)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdCreate_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: 4219_Bedding_Tag_Program.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdCreate_Click.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.SetErrorHandler("Form_UnLoad_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'close the form
+gui.Form..Visible(False)
+
+'close the connection
+F.ODBC.Connection!conx.Close
+
+'end the program
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Form_UnLoad_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: 4219_Bedding_Tag_Program.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdBrwser_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdBrwser_Click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.sTitles.Declare(String)
+V.Local.iWidths.Declare(Long)
+V.Local.sRet.Declare(String)
+V.Local.ssql.Declare(String)
+V.Local.iNum.Declare(Long)
+
+Function.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+'in case of change clear out last tag number
+Gui.Form.txtLast.Text("")
+'must select from browser first
+F.Intrinsic.String.Split("JOB*!*SUFFIX", "*!*", V.Local.sTitles)
+F.Intrinsic.String.Split("500*!*250","*!*",V.Local.iWidths)
+Function.Intrinsic.UI.Browser("Select a job","conx","Select JOB, SUFFIX From V_JOB_HEADER",Variable.Local.sTitles,Variable.Local.iWidths,Variable.Local.sRet)
+Function.Intrinsic.Control.If(Variable.Local.sRet,"=","***CANCEL***")
+	Function.Intrinsic.UI.Msgbox("No job was selected!")
+	F.Intrinsic.Control.ExitSub
+Function.Intrinsic.Control.Else
+Function.Intrinsic.String.Split(Variable.Local.sRet,"*!*",Variable.Local.sRet)
+	Gui.Form.txtjob.Text(V.Local.sRet(0))
+	Gui.Form.txtSuffix.Text(V.Local.sRet(1))
+Function.Intrinsic.Control.EndIf
+
+'check the table for an existing entry to populate First Tag Number
+F.Intrinsic.String.Build("Select QTY_LAST_PRINTED From GCG_4219_Bedding_Tag Where JOB = '{0}' And SUFFIX = '{1}'", V.Local.sRet(0), V.Local.sRet(1), V.Local.ssql)
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.ssql)
+Function.Intrinsic.Control.If(V.ODBC.conx!rst.EOF, =, True) ' then first tag number will be 1
+	Gui.Form.txtFirst.Text(1)
+	'unlock last and ddlPrinter
+	Gui.Form.txtLast.Enabled(True)
+	Gui.Form.ddlPrinter.Enabled(True)
+Function.Intrinsic.Control.Else
+	V.Local.iNum.Set(V.ODBC.conx!rst.FieldValLTrim!QTY_LAST_PRINTED)
+	F.Intrinsic.Math.Add(V.Local.iNum, 1, V.Local.iNum)
+	Gui.Form.txtFirst.Text(V.Local.iNum)
+	'unlock last and ddlPrinter
+	Gui.Form.txtLast.Enabled(True)
+	Gui.Form.ddlPrinter.Enabled(True)
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdBrwser_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: 4219_Bedding_Tag_Program.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdBrwser_Click.End
+
+Program.Sub.SaveDB.Start
+F.Intrinsic.Control.SetErrorHandler("SaveDB_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.ssql.Declare(String)
+
+'check if job/suffix exists in table. if it does- update table
+Function.Intrinsic.Control.If(V.Screen.Form!txtFirst.Text, = , "1")  'new record
+	F.ODBC.Connection!conx.OpenLocalRecordsetRW("rst","Select * From GCG_4219_Bedding_Tag")
+	F.ODBC.conx!rst.AddNew
+	F.ODBC.conx!rst.Set!JOB(V.Screen.Form!txtjob.Text)
+	F.ODBC.conx!rst.Set!SUFFIX(V.Screen.Form!txtSuffix.Text)
+	F.ODBC.conx!rst.Set!QTY_LAST_PRINTED(V.Screen.Form!txtLast.Text)
+	F.ODBC.conx!rst.Update
+	F.ODBC.conx!rst.Close
+Function.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Select QTY_LAST_PRINTED From GCG_4219_Bedding_Tag Where JOB = '{0}' And SUFFIX = '{1}'", V.Screen.Form!txtjob.Text, V.Screen.Form!txtSuffix.Text, V.Local.ssql)
+	F.ODBC.Connection!conx.OpenLocalRecordsetRW("rst",V.Local.ssql)
+	F.ODBC.conx!rst.Set!QTY_LAST_PRINTED(V.Screen.Form!txtLast.Text)
+	F.ODBC.conx!rst.Update
+	F.ODBC.conx!rst.Close
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("SaveDB_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: 4219_Bedding_Tag_Program.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.SaveDB.End
+
+Program.Sub.CreateFiles.Start
+F.Intrinsic.Control.SetErrorHandler("CreateFiles_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.stxt1.Declare(String)
+V.Local.stxt2.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.iPrtn.Declare(Long)
+V.Local.iQty.Declare(Long)
+V.Local.ssql.Declare(String)
+V.Local.sOrder.Declare(String)
+V.Local.sLines.Declare(String)
+V.Local.sShip.Declare(String)
+V.Local.dShip.Declare(Date)
+V.Local.sDesc.Declare(String)
+V.Local.sPlant.Declare(String)
+V.Local.sWarranty.Declare(String)
+V.Local.sfile.Declare(String)
+V.Local.sdate.Declare(String)
+V.Local.sdate1.Declare(String)
+V.Local.sFilename.Declare(String)
+V.Local.sFullpath.Declare(String)
+
+'file 1
+'The program will generate the two .csv files and store them in the user?s \\gc-acc-01\WDDropFiles directory saved as "BedTagP+printer#+timestamp.csv" 
+
+Function.Intrinsic.Control.If(V.Screen.Form!ddlPrinter.Text, = ,"PD1 Assembly")
+	V.Local.iPrtn.Set(1)
+Function.Intrinsic.Control.ElseIf(V.Screen.Form!ddlPrinter.Text, = ,"PD1 Office")
+	V.Local.iPrtn.Set(2)
+Function.Intrinsic.Control.ElseIf(V.Screen.Form!ddlPrinter.Text, = ,"MCI")
+	V.Local.iPrtn.Set(3)
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Math.Sub(V.Screen.Form!txtLast.Text, V.Screen.Form!txtFirst.Text, V.Local.iQty)
+F.Intrinsic.Math.Add(V.Local.iQty, 1, V.Local.iQty)
+
+F.Intrinsic.String.Build("Select ORDER_NO, ORDER_LINE From V_ORDER_TO_WO Where Job = '{0}' And Suffix = '{1}'", V.Screen.Form!txtjob.Text, V.Screen.Form!txtSuffix.Text, V.Local.ssql)
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.ssql)
+Function.Intrinsic.Control.If(V.ODBC.conx!rst.EOF, <>, True)
+	V.Local.sOrder.Set(V.ODBC.conx!rst.FieldValTrim!ORDER_NO)
+	V.Local.sLines.Set(V.ODBC.conx!rst.FieldValTrim!ORDER_LINE)
+Function.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Select SALES_ORDER, SALES_ORDER_LINE From V_JOB_HEADER Where Job = '{0}' And Suffix = '{1}'", V.Screen.Form!txtjob.Text, V.Screen.Form!txtSuffix.Text, V.Local.ssql)
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("rstx",V.Local.ssql)
+	Function.Intrinsic.Control.If(V.ODBC.conx!rstx.FieldValTrim!SALES_ORDER, <>, "0000000")
+		V.Local.sOrder.Set(V.ODBC.conx!rstx.FieldValTrim!SALES_ORDER)
+		V.Local.sLines.Set(V.ODBC.conx!rstx.FieldValTrim!SALES_ORDER_LINE)
+	Function.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("No Sales Order data found for Work Order '{0} {1}'.", V.Screen.Form!txtjob.Text, V.Screen.Form!txtSuffix.Text, V.Local.ssql)
+		F.Intrinsic.UI.Msgbox(V.Local.ssql, "Information Not Found")
+		F.ODBC.conx!rstx.Close
+		F.ODBC.conx!rst.Close
+		F.Intrinsic.Control.ExitSub
+	Function.Intrinsic.Control.EndIf
+	F.ODBC.conx!rstx.Close
+Function.Intrinsic.Control.EndIf
+Function.Intrinsic.String.Lpad (V.Local.sLines, 0,4, V.Local.sLines)
+F.ODBC.conx!rst.Close
+F.Intrinsic.String.Build("Select DATE_SHIP, DESCRIPTION From V_ORDER_LINES Where Order_NO = '{0}' And Record_NO = '{1}'", V.Local.sOrder, V.Local.sLines, V.Local.ssql)
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.ssql)
+V.Local.dShip.Set(V.ODBC.conx!rst.FieldVal!DATE_SHIP)
+V.Local.sDesc.Set(V.ODBC.conx!rst.FieldValTrim!DESCRIPTION)
+'format date ship
+F.Intrinsic.String.Format(V.Local.dShip, "MM/YY", V.Local.sShip)
+F.ODBC.conx!rst.Close
+
+Function.Intrinsic.Control.If(V.Local.iPrtn, <, 3) 
+	V.Local.sPlant.Set("PD1")
+Function.Intrinsic.Control.Else
+	V.Local.sPlant.Set("MCI")
+Function.Intrinsic.Control.EndIf
+
+'warranty
+F.Intrinsic.String.Build("Select PRODUCT_LINE From V_JOB_HEADER Where JOB = '{0}' And SUFFIX = '{1}'", V.Screen.Form!txtjob.Text, V.Screen.Form!txtSuffix.Text, V.Local.ssql)
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.ssql)
+V.Local.sWarranty.Set(V.ODBC.conx!rst.FieldVal!PRODUCT_LINE)
+F.ODBC.conx!rst.Close
+
+Function.Intrinsic.Control.If(V.Local.sWarranty, = , "PS")
+	F.Intrinsic.UI.Msgbox("Install Green Labels and Click OK to Start Printing", "Green Labels", 0)
+	V.Local.sWarranty.Set(1)
+Function.Intrinsic.Control.ElseIf(V.Local.sWarranty, = , "QE") 
+	V.Local.sWarranty.Set(1)
+Function.Intrinsic.Control.ElseIf(V.Local.sWarranty, = , "QO") 
+	V.Local.sWarranty.Set(1)
+Function.Intrinsic.Control.ElseIf(V.Local.sWarranty, = , "RA") 
+	V.Local.sWarranty.Set(1)
+Function.Intrinsic.Control.ElseIf(V.Local.sWarranty, = , "NC") 
+	V.Local.sWarranty.Set(2)
+Function.Intrinsic.Control.Else
+	V.Local.sWarranty.Set(10)	
+Function.Intrinsic.Control.EndIf
+
+'check path exists
+F.Intrinsic.String.build("{0}","\\gc-app-01\WDrop",V.Local.sfile)
+'see if the folder exists
+F.Intrinsic.File.Exists(V.Local.sfile,V.Local.bexists)
+'if the file doesn't exists create it
+F.Intrinsic.Control.If(V.Local.bexists,=,False)
+		F.Intrinsic.File.CreateDir(V.Local.sfile)
+F.Intrinsic.Control.EndIf
+
+'File 1
+F.Intrinsic.String.Build("{0}{1}","*PRINTERNUMBER,*QUANTITY,*FORMAT,*DUPLICATES,LabelCount,DateOfDelivery,Model,ReferenceNumber,Plant,YesFlameRetardantChemicals,NoFlameRetardantChemicals,Warranty", V.Ambient.NewLine,V.Local.stxt1)
+F.Intrinsic.String.Build("{0}{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}",V.Local.stxt1,V.Local.iPrtn,V.Local.iQty,"BT_GSR.lwl","1" ,V.Screen.Form!txtFirst.Text,V.Local.sShip, V.Local.sDesc,V.Local.sOrder,V.Local.sPlant,"","X",V.Local.sWarranty,V.Local.stxt1)
+'set the date and format it
+Function.Intrinsic.String.Format (V.Ambient.Date,"YYYYDDMM",V.Local.sdate)
+Function.Intrinsic.String.Format (V.Ambient.Time,"HHNNSS",V.Local.sdate1)
+F.Intrinsic.String.Build("{0}{1}",V.Local.sdate,V.Local.sdate1,V.Local.sdate)
+'build the filename
+F.Intrinsic.String.Build("{0}{1}{2}.csv","BedTagP",V.Local.iPrtn,V.Local.sDate,V.Local.sFilename)
+	'build the full path
+F.Intrinsic.String.Build("{0}\{1}",V.local.sfile,V.Local.sFilename,V.Local.sFullpath)
+F.Intrinsic.File.String2File(V.Local.sfullpath,V.Local.stxt1)
+
+'File 2
+'sleep- cannot have sane file name
+Function.Intrinsic.UI.Sleep (1)
+F.Intrinsic.String.Build("{0}{1}","*PRINTERNUMBER,*QUANTITY,*FORMAT,*DUPLICATES,Blank_Label", V.Ambient.NewLine,V.Local.stxt2)
+F.Intrinsic.String.Build("{0}{1},{2},{3},{4},{5}",V.Local.stxt2,V.Local.iPrtn,V.Local.iQty,"BlankCut.lwl","1","Data001",V.Local.stxt2)
+'set the date and format it
+Function.Intrinsic.String.Format (V.Ambient.Date,"YYYYDDMM",V.Local.sdate)
+Function.Intrinsic.String.Format (V.Ambient.Time,"HHNNSS",V.Local.sdate1)
+F.Intrinsic.String.Build("{0} {1}",V.Local.sdate,V.Local.sdate1,V.Local.sdate)
+'build the filename
+F.Intrinsic.String.Build("{0}{1}{2}.csv","BedTagP",V.Local.iPrtn,V.Local.sDate,V.Local.sFilename)
+'build the full path
+F.Intrinsic.String.Build("{0}\{1}",V.local.sfile,V.Local.sFilename,V.Local.sFullpath)
+F.Intrinsic.File.String2File(V.Local.sfullpath,V.Local.stxt2)
+
+F.Intrinsic.Control.CallSub(savedb)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("CreateFiles_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: 4219_Bedding_Tag_Program.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.CreateFiles.End
+
+Program.Sub.Comments.Start
+${$0$}$4219_Bedding_Tag_Program.g2u$}$DH1$}$10/14/2016 11:40:39 AM$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$This project will be attached to hook 10290.
+It will retrieve the most recent date change record for the alt cost of a part and display it on the RFQ screen when the part information gets populated.
+Program.Sub.Comments.End
